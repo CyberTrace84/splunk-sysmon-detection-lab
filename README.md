@@ -24,7 +24,15 @@ activity, and document findings as an L1 analyst would.
 Simulated failed network logons with a PowerShell loop. The alert fired as expected.
 
 ## Screenshots
-(add links)
+
+**Failed logon events (Event ID 4625)**
+![Failed logons](screenshots/01-failed-logons-events.png)
+
+**Brute-force alert configuration**
+![Alert config](screenshots/02-brute-force-alert-config.png)
+
+**Alert triggered**
+![Alert triggered](screenshots/03-alert-triggered.png)
 
 ## Challenges and fixes
 - Stats table was empty because I grouped by a field that didn't exist
