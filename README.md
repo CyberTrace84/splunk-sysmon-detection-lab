@@ -21,7 +21,14 @@ activity, and document findings as an L1 analyst would.
 | Multiple failed logons | T1110.001 | Security 4625 | 5+ failures in 5 min per user/source | Forgotten passwords |
 
 ## Testing
-Simulated failed network logons with a PowerShell loop. The alert fired as expected.
+ Simulated a password-guessing attack with failed network logons:
+```powershell
+   1..10 | ForEach-Object {
+     net use \\localhost\IPC$ /user:fakeadmin "WrongPass$_" 2>$null
+     Start-Sleep -Seconds 2
+   }
+```
+   Result: 10 failed logons (Event ID 4625, Logon Type 3) for `fakeadmin`; the alert triggered within the 5-minute schedule.
 
 ## Screenshots
 
