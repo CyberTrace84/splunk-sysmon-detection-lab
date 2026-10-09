@@ -1,0 +1,10 @@
+# Detection: Multiple failed logons (brute force)
+# MITRE ATT&CK: T1110.001 (Password Guessing)
+# Log source: Windows Security, EventCode 4625
+# False positive: user mistyping their password repeatedly
+
+index=main EventCode=4625
+| eval target_user=mvindex(Account_Name,1)
+| bin _time span=5m
+| stats count by _time, target_user, Source_Network_Address, host
+| where count >= 5
