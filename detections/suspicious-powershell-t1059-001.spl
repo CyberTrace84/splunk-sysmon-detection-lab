@@ -1,0 +1,22 @@
+# Detection: Suspicious PowerShell execution
+# Alert name: Suspicious PowerShell Execution (T1059.001)
+# MITRE ATT&CK: T1059.001 (Command and Scripting Interpreter: PowerShell)
+# Log source: Sysmon Operational, EventCode 1 (Process Create)
+# Schedule: every 5 minutes (cron */5 * * * *), 10-minute lookback
+# Trigger: number of results > 0, for each result
+# Throttle: suppress by host for 30 minutes
+# False positives: software deployment scripts, admin tools and
+#   installers that use -ExecutionPolicy Bypass
+# Notes: User is multivalued in these events, so mvindex(User,-1)
+#   returns the real account instead of NOT_TRANSLATED.
+
+index=main source="WinEventLog:Microsoft-Windows-Sysmon/Operational" EventCode=1 Image="*\\powershell.exe" earliest=-10m
+| eval cmd=lower(CommandLine)
+| eval run_user=mvindex(User,-1)
+| eval r1=if(match(cmd,"\\s[-/](e|ec|enc|encodedcommand)\\s"),"Encoded command",null())
+| eval r2=if(match(cmd,"[-/](w|windowstyle)\\s+hidden"),"Hidden window",null())
+| eval r3=if(match(cmd,"[-/](ep|exec|executionpolicy)\\s+bypass"),"Execution policy bypass",null())
+| eval r4=if(match(cmd,"downloadstring|downloadfile|invoke-webrequest|invoke-expression|\\siex\\s"),"Download or execute",null())
+| eval reason=mvappend(r1,r2,r3,r4)
+| where isnotnull(reason)
+| table _time, host, run_user, ParentImage, reason, CommandLine
