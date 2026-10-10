@@ -18,7 +18,7 @@ Build a small SOC lab that collects Windows logs, detects suspicious activity, a
 
 | Name | ATT&CK | Log source | Logic | False positives |
 |---|---|---|---|---|
-| Multiple failed logons | T1110.001 | Security 4625 | 5+ failures in 5 min per user and source | User forgetting their password |
+| Brute Force - Multiple Failed Logons | T1110.001 | Security 4625 | 5+ failures in 10 min per user and source | User forgetting their password |
 
 ### Brute-force detection: analyst notes
 **Query:** [detections/brute-force-4625.spl](detections/brute-force-4625.spl)
@@ -29,7 +29,7 @@ Build a small SOC lab that collects Windows logs, detects suspicious activity, a
 3. Check whether a successful logon (4624) follows the failures from the same source.
 4. Escalate if a success follows, the account is privileged, or the source is external.
 
-**Tuning:** threshold set to 5 failures in 5 minutes to catch guessing while ignoring a single typo. This can be adjusted per environment.
+**Tuning:** threshold of 5 failures catches guessing while ignoring a single typo. The search looks back 10 minutes and repeats are suppressed per user for 30 minutes, so one attack produces one alert.
 
 ## Testing
 Simulated a password-guessing attack with failed network logons:
@@ -41,24 +41,41 @@ Simulated a password-guessing attack with failed network logons:
 }
 ```
 
-Result: failed logons (Event ID 4625) for `fakeadmin`, and the alert triggered on its 5-minute schedule.
+Result: failed logons (Event ID 4625) for `fakeadmin`, and the alert triggered.
 
 ## Screenshots
 
 **Failed logon events (Event ID 4625)**
+
 ![Failed logons](screenshots/01-failed-logons-events.png)
 
-**Brute-force alert configuration**
-![Alert config](screenshots/02-brute-force-alert-config.png)
+### Before tuning
+**Alert configuration (v1)**
 
-**Alert triggered**
-![Alert triggered](screenshots/03-alert-triggered.png)
+![Alert config v1](screenshots/02-brute-force-alert-config.png)
+
+**11 alerts for a single test**
+
+![Duplicate alerts](screenshots/03-alert-triggered.png)
+
+### After tuning
+**Tuned search and schedule (v2)**
+
+![Tuned search](screenshots/04-alert-config-tuned-search.png)
+
+**Trigger and throttle settings**
+
+![Throttle](screenshots/05-alert-config-tuned-throttle.png)
+
+**One alert for the same test**
+
+![Single alert](screenshots/06-alert-triggered-after-tuning.png)
 
 ## Challenges and fixes
 - **Empty statistics table.** My `stats` search grouped by `IpAddress`, which didn't exist in the 4625 events, so every row was dropped. Fixed by inspecting a raw event and using the real field names.
 - **Sysmon logs missing in Splunk.** Sysmon was logging locally, but the forwarder wasn't sending it. Fixed by correcting the `inputs.conf` stanza, restarting the forwarder service, and verifying with `btool`.
 - **Real-time time range returned nothing.** Real-time searches only show new events, so I used a "last 24 hours" window for historical data.
-- **Duplicate alerts.** The first version re-triggered every 5 minutes (11 alerts for one test) because the search had no tight time window and no throttling. Fixed by limiting the search to the last 10 minutes and suppressing repeats per user for 30 minutes.
+- **Duplicate alerts.** The first version re-triggered every 5 minutes (11 alerts for one test) because the search had no tight time window and no throttling. Fixed with a 10-minute lookback and a 30-minute per-user suppression.
 
 ## Roadmap
 - [ ] Suspicious PowerShell detection (T1059.001) using Sysmon Event ID 1
