@@ -67,7 +67,7 @@ Result: failed logons (Event ID 4625) for `fakeadmin`, and the alert triggered.
 
 ![Throttle](screenshots/05-alert-config-tuned-throttle.png)
 
-**One alert for the same test**
+**One alert for the same test (Mode: Per Result)**
 
 ![Single alert](screenshots/06-alert-triggered-after-tuning.png)
 
