@@ -8,9 +8,10 @@
 |---|---|
 | Ticket ID | INC-001 |
 | Alert | Suspicious PowerShell Execution (T1059.001) |
-| Severity | Medium |
-| Status | Closed: true positive (simulated) |
-| Detected (UTC) | 10/10/2026 07:02:28.122 PM |
+| Severity | Medium (alert rating); assessed as Low after triage |
+| Status | Closed - true positive (simulated) |
+| Event time | 2026-10-10 19:02:28 GST (UTC+4) / 15:02:28 UTC |
+| Alert triggered (UTC) | 2026-10-10 15:05:00 UTC |
 | Host | DESKTOP-QGD5SNC |
 | User | DESKTOP-QGD5SNC\Thoufeeq |
 | Analyst | Mohamed Thoufeeq |
@@ -29,12 +30,16 @@ used by attackers to hide what a script does.
 - **Screenshots:** `screenshots/07` to `screenshots/11`
 
 ## 3. Analysis
-1. **Parent process:** Windows Terminal launched PowerShell, which is normal for an interactive session.
+1. **Parent process:** the suspicious `powershell.exe` was started by an
+   interactive `powershell.exe` session (the commands were typed at a
+   PowerShell prompt, not launched by an Office application, browser or
+   script host). A shell starting a child PowerShell is expected for an
+   interactive session.
 2. **Payload:** the base64 decodes to `whoami`, which only prints the current
    username. No download, no network connection and no file written.
 3. **Context:** the user is a local interactive account, and the activity
    happened at the time I ran my test.
-4. **Related activity:** I searched Sysmon for other events from this host around the same time and found nothing unusual.
+4. **Related activity:** I searched Sysmon for other events from this host around the same time and found that the only results were temporary PowerShell script files matching EventCode 11, with no signs of malicious downloads.
 
 ## 4. Verdict
 **True positive for the technique, not a real incident.** The detection works
