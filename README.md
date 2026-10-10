@@ -58,6 +58,7 @@ Result: failed logons (Event ID 4625) for `fakeadmin`, and the alert triggered o
 - **Empty statistics table.** My `stats` search grouped by `IpAddress`, which didn't exist in the 4625 events, so every row was dropped. Fixed by inspecting a raw event and using the real field names.
 - **Sysmon logs missing in Splunk.** Sysmon was logging locally, but the forwarder wasn't sending it. Fixed by correcting the `inputs.conf` stanza, restarting the forwarder service, and verifying with `btool`.
 - **Real-time time range returned nothing.** Real-time searches only show new events, so I used a "last 24 hours" window for historical data.
+- **Duplicate alerts.** The first version re-triggered every 5 minutes (11 alerts for one test) because the search had no tight time window and no throttling. Fixed by limiting the search to the last 10 minutes and suppressing repeats per user for 30 minutes.
 
 ## Roadmap
 - [ ] Suspicious PowerShell detection (T1059.001) using Sysmon Event ID 1
