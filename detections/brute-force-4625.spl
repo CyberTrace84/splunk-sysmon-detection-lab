@@ -1,10 +1,18 @@
 # Detection: Multiple failed logons (brute force)
-# MITRE ATT&CK: T1110.001 (Password Guessing)
+# Alert name: Brute Force - Multiple Failed Logons (T1110.001)
+# MITRE ATT&CK: T1110.001 (Brute Force: Password Guessing)
 # Log source: Windows Security, EventCode 4625
-# False positive: user mistyping their password repeatedly
+# Schedule: every 5 minutes (cron */5 * * * *), 10-minute lookback
+# Trigger: number of results > 0, for each result
+# Throttle: suppress by target_user for 30 minutes
+# False positives: user mistyping a password repeatedly; service
+#   account with an outdated stored password
+# Tuning history:
+#   v1: no tight time window and no throttling. 11 duplicate alerts
+#       from a single test.
+#   v2: 10-minute lookback and per-user suppression. 1 alert per attack.
 
-index=main EventCode=4625
+index=main EventCode=4625 earliest=-10m
 | eval target_user=mvindex(Account_Name,1)
-| bin _time span=5m
-| stats count by _time, target_user, Source_Network_Address, host
+| stats count, min(_time) as first_seen, max(_time) as last_seen by target_user, Source_Network_Address, host
 | where count >= 5
