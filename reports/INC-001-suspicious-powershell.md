@@ -25,9 +25,10 @@ used by attackers to hide what a script does.
 ## 2. Evidence
 - **Alert reasons:** Encoded command, Hidden window, Execution policy bypass
 - **Parent process:** C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
-- **Command line 1:** `powershell.exe -NoProfile -WindowStyle Hidden -EncodedCommand dwBoAG8AYQBtAGkA...`
+- **Command line 1:** `powershell.exe -NoProfile -WindowStyle Hidden -EncodedCommand dwBoAG8AYQBtAGkA`
 - **Command line 2:** `powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Write-Output 'test'"`
-- **Screenshots:** `screenshots/07` to `screenshots/11`
+- **Screenshots:** `screenshots/08-powershell-detection-results.png`, `screenshots/11-powershell-alert-triggered.png`
+- **Decoded payload:** `whoami`
 
 ## 3. Analysis
 1. **Parent process:** the suspicious `powershell.exe` was started by an
@@ -36,10 +37,15 @@ used by attackers to hide what a script does.
    script host). A shell starting a child PowerShell is expected for an
    interactive session.
 2. **Payload:** the base64 decodes to `whoami`, which only prints the current
-   username. No download, no network connection and no file written.
-3. **Context:** the user is a local interactive account, and the activity
+   username. The payload itself does not download or execute anything remote.
+3. **Context:** the user is a local account on the host, and the activity
    happened at the time I ran my test.
-4. **Related activity:** I searched Sysmon for other events from this host around the same time and found that the only results were temporary PowerShell script files matching EventCode 11, with no signs of malicious downloads.
+4. **Related activity:** I searched Sysmon for network connections (Event ID 3),
+   file creation (Event ID 11) and DNS queries (Event ID 22) from
+   `powershell.exe` on this host around the event time. There were no network
+   connections or DNS queries. The only file-creation events were temporary
+   PowerShell script files (C:\Users\Thoufeeq\AppData\Local\Temp\__PSScriptPolicyTest_xf3sxlwu.go1.ps1), which PowerShell creates when it checks the script execution policy and which
+   are not evidence of malicious activity.
 
 ## 4. Verdict
 **True positive for the technique, not a real incident.** The detection works
