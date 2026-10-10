@@ -111,6 +111,6 @@ Result: both commands were detected, with reasons "Encoded command", "Hidden win
 
 ## Roadmap
 - [x] Suspicious PowerShell detection (T1059.001) using Sysmon Event ID 1
-- [ ] L1 incident tickets for each alert (in `/reports`)
+- [ ] L1 incident tickets for each alert (INC-001 done, see /reports)
 - [ ] Architecture diagram
 - [ ] Rebuild detections in Microsoft Sentinel (KQL)
