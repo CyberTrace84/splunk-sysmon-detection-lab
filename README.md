@@ -110,7 +110,11 @@ Result: both commands were detected, with reasons "Encoded command", "Hidden win
 - **Wrong `User` value.** Sysmon events returned two `User` values, one of them `NOT_TRANSLATED`. Fixed by selecting the last value with `mvindex(User,-1)`.ression.
 
 ## Roadmap
-- [x] Suspicious PowerShell detection (T1059.001) using Sysmon Event ID 1
-- [x] L1 incident tickets for each alert (see /reports)
+## Roadmap
+- [x] Brute-force detection (T1110.001)
+- [x] Suspicious PowerShell detection (T1059.001)
+- [x] L1 incident tickets for both alerts
+- [ ] New local admin account detection (T1136.001)
+- [ ] Scheduled task persistence detection (T1053.005)
 - [ ] Architecture diagram
 - [ ] Rebuild detections in Microsoft Sentinel (KQL)
