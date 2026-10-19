@@ -1,0 +1,24 @@
+# Detection: New local account added to the Administrators group
+# Alert name: New Local Admin Account (T1136.001)
+# MITRE ATT&CK: T1136.001 (Create Account: Local Account), T1098 (Account Manipulation)
+# Log source: Windows Security, EventCode 4720 (account created) and 4732 (member added to local group)
+# Schedule: every 5 minutes (cron */5 * * * *), 10-minute lookback
+# Trigger: number of results > 0, for each result
+# Throttle: suppress by member_sid for 30 minutes
+# Severity: High (a new admin account can give an attacker persistence)
+# False positives: IT staff creating accounts during onboarding, deployment tools
+# Notes:
+#   - Windows automatically adds every new account to Users (4732), so the
+#     query only triggers when the group SID is S-1-5-32-544 (Administrators).
+#   - 4732 does not show the member's name, only its SID, so events are
+#     joined on the member SID.
+
+index=main source="WinEventLog:Security" earliest=-10m (EventCode=4720 OR EventCode=4732)
+| eval actor=mvindex(Account_Name,0)
+| eval member_sid=mvindex(Security_ID,1)
+| eval new_account=if(EventCode=4720, mvindex(Account_Name,1), null())
+| eval admin_add=if(EventCode=4732 AND mvindex(Security_ID,2)="S-1-5-32-544", 1, 0)
+| stats values(actor) as actor, values(new_account) as new_account, values(EventCode) as events, max(admin_add) as admin_added, min(_time) as first_seen by host, member_sid
+| where admin_added=1
+| eval first_seen=strftime(first_seen,"%Y-%m-%d %H:%M:%S")
+| table first_seen, host, actor, new_account, member_sid, events
