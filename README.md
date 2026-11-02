@@ -161,8 +161,7 @@ Result: events 4720 and 4732 were correlated by the account's SID and the alert 
 ## Roadmap
 - [x] Brute-force detection (T1110.001)
 - [x] Suspicious PowerShell detection (T1059.001)
-- [x] L1 incident tickets for both alerts
 - [x] New local admin account detection (T1136.001)
-- [ ] Scheduled task persistence detection (T1053.005)
+- [x] Scheduled task persistence detection (T1053.005)
 - [ ] Architecture diagram
 - [ ] Rebuild detections in Microsoft Sentinel (KQL)
