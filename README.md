@@ -58,6 +58,19 @@ Build a small SOC lab that collects Windows logs, detects suspicious activity, a
 
 **Tuning:** triggers only on the Administrators group SID (S-1-5-32-544) so Windows' automatic Users-group event doesn't alert. Events are correlated by SID because 4732 shows the member only as a SID. 10-minute lookback, suppression per member SID for 30 minutes, severity High.
 
+### Scheduled task detection: analyst notes
+**Query:** [detections/suspicious-scheduled-task-t1053-005.spl](detections/suspicious-scheduled-task-t1053-005.spl)
+
+**Triage steps when it fires:**
+1. Read the `reason` flags: SYSTEM, logon or startup trigger, script or LOLBin action, user-writable path.
+2. Identify the task name, trigger, run-as account and the program it launches.
+3. Check `ParentImage`: an interactive shell is less suspicious than an Office app or browser.
+4. Check whether the task has run, and what it started.
+5. Escalate if it runs as SYSTEM and launches a script or binary from a user-writable path, or if the creator is unexpected.
+
+**Tuning:** requires 2 or more of 4 risk flags. 10-minute lookback, suppression per host for 30 minutes.
+**Limitation:** only sees tasks created with `schtasks.exe`.
+
 ## Testing
 Simulated a password-guessing attack with failed network logons:
 
@@ -130,6 +143,9 @@ Result: events 4720 and 4732 were correlated by the account's SID and the alert 
 ![New admin alert config](screenshots/14-new-admin-alert-config.png)
 ![New admin throttle](screenshots/15-new-admin-alert-throttle.png)
 ![New admin alert triggered](screenshots/16-new-admin-alert-triggered.png)
+
+## Scheduled task detection
+
 
 ## Challenges and fixes
 - **Empty statistics table.** My `stats` search grouped by `IpAddress`, which didn't exist in the 4625 events, so every row was dropped. Fixed by inspecting a raw event and using the real field names.
