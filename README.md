@@ -11,7 +11,7 @@ Build a small SOC lab that collects Windows logs, detects suspicious activity, a
 ![Architecture diagram](screenshots/architecture.svg)
 
 ## Log sources
-- Windows Security (logons, privileges)
+- Windows Security (logons, account and group changes)
 - Windows System
 - Sysmon Operational (process creation and more)
 
@@ -22,7 +22,7 @@ Build a small SOC lab that collects Windows logs, detects suspicious activity, a
 | Brute Force - Multiple Failed Logons | T1110.001 | Security 4625 | 5+ failures in 10 min per user and source | User forgetting their password |
 | Suspicious PowerShell Execution | T1059.001 | Sysmon Event ID 1 | Encoded, hidden, bypass or download flags on powershell.exe | Admin scripts and installers using Bypass |
 | New Local Admin Account | T1136.001 | Security 4720 + 4732 | New account added to Administrators (group SID S-1-5-32-544) | IT onboarding, deployment tools |
-| Suspicious Scheduled Task Creation | T1053.005 | Sysmon Event ID 1 | `schtasks /create` with 2+ risk flags (SYSTEM, logon/startup trigger, script action, user-writable path) | Installers, updaters, admin maintenance tasks |
+| Suspicious Scheduled Task Creation | T1053.005 | Sysmon Event ID 1 | `schtasks /create` with 2+ risk flags (SYSTEM, logon/startup or frequent trigger, script or LOLBin action, user-writable path) | Installers, updaters, admin maintenance tasks |
 
 ### Brute-force detection: analyst notes
 **Query:** [detections/brute-force-4625.spl](detections/brute-force-4625.spl)
@@ -46,6 +46,7 @@ Build a small SOC lab that collects Windows logs, detects suspicious activity, a
 5. Escalate if the parent is an Office app or browser, the payload downloads or runs remote content, or the account isn't expected to use PowerShell.
 
 **Tuning:** 10-minute lookback, suppression per host for 30 minutes. Expected false positives are deployment scripts that use `-ExecutionPolicy Bypass`.
+**Limitation:** only sees `powershell.exe` (Windows PowerShell 5.1), not `pwsh.exe` (PowerShell 7).
 
 ### New local admin detection: analyst notes
 **Query:** [detections/new-local-admin-t1136-001.spl](detections/new-local-admin-t1136-001.spl)
@@ -180,6 +181,7 @@ Result: the alert triggered at High severity. The task never executed, because i
 - **No account name in the group event.** Event 4732 showed the member only as a SID, so I correlated events by SID instead of name.
 - **Duplicate alerts on the new-admin detection.** The first test produced two alerts for one attack. The saved alert's throttle field had a typo (`member _sid`), so suppression never matched, and the search had no `earliest=-10m`, so it used the alert's 15-minute window. Because the alert runs every 5 minutes, overlapping windows re-read the same event. I fixed both, retested, and got one alert. I changed both at once, so I can't isolate which alone mattered, but the throttle is what stops overlapping runs from re-alerting.
 - **Alert ran on the wrong window at first.** The first scheduled run (12:20 UTC) returned 2 results, the test tasks created at 12:08, which a 10-minute lookback would not have reached. That suggests my first saved version didn't yet have `earliest=-10m`. I corrected the saved search, confirmed it with Edit Alert, and retested with a new task. Both the 12:25 and 12:30 runs found the new task, but the throttle produced only one alert, which I confirmed in the scheduler log.
+- **SYSTEM check matched too much.** Reviewing the scheduled-task query, I found that `/ru\s+.*system` keeps matching past the `/ru` value, so "System32" anywhere later in the command counted as "Runs as SYSTEM". A task running as a normal user with a System32 action (2 flags) would have alerted. I changed the check to match only the `/ru` value (`system` or `nt authority\system`).
 
 ## Roadmap
 - [x] Brute-force detection (T1110.001)
