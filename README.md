@@ -8,6 +8,7 @@ Build a small SOC lab that collects Windows logs, detects suspicious activity, a
 - **Forwarding:** Splunk Universal Forwarder sends logs to the server
 - **SIEM:** Splunk Enterprise on an Ubuntu Server VM, firewalled with UFW (only ports 8000 and 9997 allowed)
 - **Platform:** VMware Workstation Pro
+![Architecture diagram](screenshots/architecture.svg)
 
 ## Log sources
 - Windows Security (logons, privileges)
@@ -102,6 +103,14 @@ net localgroup administrators labtest10 /add
 
 Result: events 4720 and 4732 were correlated by the account's SID and the alert triggered once at High severity.
 
+Simulated scheduled task persistence with a harmless task that runs as SYSTEM at logon:
+
+```powershell
+schtasks /create /tn "LabUpdater2" /tr "C:\Windows\System32\cmd.exe /c echo lab-test2" /sc onlogon /ru SYSTEM /f
+```
+
+Result: the alert triggered at High severity. The task never executed, because it only starts at logon and I deleted it first.
+
 ## Screenshots
 
 **Failed logon events (Event ID 4625)**
@@ -144,8 +153,20 @@ Result: events 4720 and 4732 were correlated by the account's SID and the alert 
 ![New admin throttle](screenshots/15-new-admin-alert-throttle.png)
 ![New admin alert triggered](screenshots/16-new-admin-alert-triggered.png)
 
-## Scheduled task detection
+### Scheduled task detection
+![Schtasks Sysmon events](screenshots/17-schtasks-sysmon-events.png)
+![Schtasks detection results](screenshots/18-schtasks-detection-results.png)
+![Schtasks alert config](screenshots/19-schtasks-alert-config.png)
+![Schtasks throttle](screenshots/20-schtasks-alert-throttle.png)
+![Schtasks alert triggered](screenshots/21-schtasks-alert-triggered.png)
 
+## Incident tickets
+| ID | Alert | Verdict |
+|---|---|---|
+| [INC-001](reports/INC-001-suspicious-powershell.md) | Suspicious PowerShell Execution | True positive (simulated), not escalated |
+| [INC-002](reports/INC-002-brute-force-failed-logons.md) | Brute Force - Multiple Failed Logons | True positive (simulated), not escalated |
+| [INC-003](reports/INC-003-new-local-admin-account.md) | New Local Admin Account | True positive (simulated), not escalated |
+| [INC-004](reports/INC-004-suspicious-scheduled-task.md) | Suspicious Scheduled Task Creation | True positive (simulated), not escalated |
 
 ## Challenges and fixes
 - **Empty statistics table.** My `stats` search grouped by `IpAddress`, which didn't exist in the 4625 events, so every row was dropped. Fixed by inspecting a raw event and using the real field names.
@@ -157,11 +178,12 @@ Result: events 4720 and 4732 were correlated by the account's SID and the alert 
 - **Alert on every new account.** Windows adds each new account to the Users group automatically (an extra 4732 event). Fixed by triggering only when the group SID is S-1-5-32-544 (Administrators).
 - **No account name in the group event.** Event 4732 showed the member only as a SID, so I correlated events by SID instead of name.
 - **Duplicate alerts on the new-admin detection.** The first test produced two alerts for one attack. The saved alert's throttle field had a typo (`member _sid`), so suppression never matched, and the search had no `earliest=-10m`, so it used the alert's 15-minute window. Because the alert runs every 5 minutes, overlapping windows re-read the same event. I fixed both, retested, and got one alert. I changed both at once, so I can't isolate which alone mattered, but the throttle is what stops overlapping runs from re-alerting.
+- **Could not see the saved search.** The Save As Alert dialog doesn't show the search, so I couldn't tell whether `earliest=-10m` had saved. I confirmed it by reopening the alert with Edit Alert and checking the search text and the throttle field.
 
 ## Roadmap
 - [x] Brute-force detection (T1110.001)
 - [x] Suspicious PowerShell detection (T1059.001)
 - [x] New local admin account detection (T1136.001)
 - [x] Scheduled task persistence detection (T1053.005)
-- [ ] Architecture diagram
+- [x] Architecture diagram
 - [ ] Rebuild detections in Microsoft Sentinel (KQL)
