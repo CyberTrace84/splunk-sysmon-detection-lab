@@ -10,8 +10,9 @@
 | Alert | Suspicious Scheduled Task Creation (T1053.005) |
 | Severity | High (alert rating); assessed as Low in this lab because I created the task |
 | Status | Closed - true positive (simulated) |
-| Task created | 2026-11-02 HH:MM:SS UTC (GST is UTC+4) |
+| Task created | 2026-11-02 16:22:51 GST (UTC+4) / 12:22:51 UTC |
 | Alert triggered (UTC) | 2026-11-02 12:25:00 UTC |
+| Task deleted | 2026-11-02 16:39:46 GST / 12:39:46 UTC |
 | Host | DESKTOP-QGD5SNC |
 | Actor | DESKTOP-QGD5SNC\Thoufeeq |
 | Task name | LabUpdater2 |
@@ -19,8 +20,8 @@
 | Data source | Sysmon Event ID 1 (process creation) in Splunk |
 
 ## 1. Summary
-The detection fired when `schtasks.exe` was used to create a task that runs a
-command prompt as SYSTEM every time a user logs on.
+The detection fired about two minutes after `schtasks.exe` was used to create
+a task that runs a command prompt as SYSTEM every time a user logs on.
 
 ## 2. Evidence
 - **Command:** `schtasks /create /tn LabUpdater2 /tr "C:\Windows\System32\cmd.exe /c echo lab-test2" /sc onlogon /ru SYSTEM /f`
@@ -28,7 +29,8 @@ command prompt as SYSTEM every time a user logs on.
 - **Parent process:** `C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`
 - **Screenshots:** `screenshots/17-schtasks-sysmon-events.png`,
   `screenshots/18-schtasks-detection-results.png`,
-  `screenshots/21-schtasks-alert-triggered.png`
+  `screenshots/21-schtasks-alert-triggered.png`,
+  `screenshots/22-schtasks-scheduler-runs.png`
 
 ## 3. Analysis
 1. **Why it matters:** a task that runs as SYSTEM at every logon lets an
@@ -44,11 +46,14 @@ command prompt as SYSTEM every time a user logs on.
 4. **Did it run?** I searched Sysmon for `cmd.exe` processes containing the
    task's command text over the previous 24 hours and found none. The task is
    triggered by user logon, and no logon happened before I deleted it.
-5. **Related activity:** the same actor created two other tasks earlier on the
-   same host from the same shell: `LabUpdater` at 12:08:00 UTC (3 flags) and
-   `LabPS` at 12:08:13 UTC (2 flags, a hidden PowerShell action). Several
-   persistence tasks created minutes apart from one shell would raise
+5. **Related activity:** the same actor created two other tasks on this host
+   about 15 minutes earlier, from the same shell: `LabUpdater` at 12:08:00 UTC
+   (3 flags) and `LabPS` at 12:08:13 UTC (2 flags, a hidden PowerShell action).
+   Several persistence tasks created minutes apart from one shell would raise
    concern in a real environment.
+6. **Cleanup:** the task was deleted with `schtasks /delete` at 12:39:46 UTC.
+   In a real case, deletion would not close the investigation, because
+   attackers also remove tasks to hide their tracks.
 
 ## 4. Verdict
 **True positive for the technique, not a real incident.** The detection works
@@ -72,6 +77,10 @@ purpose is confirmed.
 - Expected false positives: installers, updaters and admin maintenance tasks.
 - Requiring 2 or more risk flags reduces noise from tasks that have only one
   common trait, such as a logon trigger.
+- Throttling: the scheduler ran at 12:25 and 12:30 UTC and both runs found
+  this task, because the 10-minute lookback overlaps the 5-minute schedule.
+  Only the 12:25 run produced a triggered alert; the throttle (per host, 30
+  minutes) suppressed the repeat.
 - Limitation: this detection depends on `schtasks.exe`. Tasks created through
   the PowerShell `Register-ScheduledTask` cmdlet or other APIs would not
   appear. Adding Security event 4698 (task created) would cover them.
