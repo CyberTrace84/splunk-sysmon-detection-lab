@@ -179,7 +179,7 @@ Result: the alert triggered at High severity. The task never executed, because i
 - **Alert on every new account.** Windows adds each new account to the Users group automatically (an extra 4732 event). Fixed by triggering only when the group SID is S-1-5-32-544 (Administrators).
 - **No account name in the group event.** Event 4732 showed the member only as a SID, so I correlated events by SID instead of name.
 - **Duplicate alerts on the new-admin detection.** The first test produced two alerts for one attack. The saved alert's throttle field had a typo (`member _sid`), so suppression never matched, and the search had no `earliest=-10m`, so it used the alert's 15-minute window. Because the alert runs every 5 minutes, overlapping windows re-read the same event. I fixed both, retested, and got one alert. I changed both at once, so I can't isolate which alone mattered, but the throttle is what stops overlapping runs from re-alerting.
-- **Could not see the saved search.** The Save As Alert dialog doesn't show the search, so I couldn't tell whether `earliest=-10m` had saved. I confirmed it by reopening the alert with Edit Alert and checking the search text and the throttle field.
+- **Alert ran on the wrong window at first.** The first scheduled run (12:20 UTC) returned 2 results, the test tasks created at 12:08, which a 10-minute lookback would not have reached. That suggests my first saved version didn't yet have `earliest=-10m`. I corrected the saved search, confirmed it with Edit Alert, and retested with a new task. Both the 12:25 and 12:30 runs found the new task, but the throttle produced only one alert, which I confirmed in the scheduler log.
 
 ## Roadmap
 - [x] Brute-force detection (T1110.001)
