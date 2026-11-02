@@ -187,4 +187,3 @@ Result: the alert triggered at High severity. The task never executed, because i
 - [x] New local admin account detection (T1136.001)
 - [x] Scheduled task persistence detection (T1053.005)
 - [x] Architecture diagram
-- [ ] Rebuild detections in Microsoft Sentinel (KQL)
