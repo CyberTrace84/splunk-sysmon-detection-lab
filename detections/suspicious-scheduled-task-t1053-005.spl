@@ -9,11 +9,17 @@
 # Logic: requires 2 or more of 4 risk flags, so a single common flag
 #   (for example an installer using a logon trigger) does not alert.
 # False positives: software installers, updaters, admin maintenance tasks
+# Tuning history:
+#   v1: the SYSTEM check used "/ru\s+.*system", which also matched
+#       "System32" later in the command, so a task running as a normal
+#       user with a System32 action was wrongly flagged as SYSTEM.
+#   v2: the SYSTEM check only matches the /ru value itself
+#       ("system" or "nt authority\system").
 
 index=main source="WinEventLog:Microsoft-Windows-Sysmon/Operational" EventCode=1 earliest=-10m Image="*\\schtasks.exe" CommandLine="*/create*"
 | eval cmd=lower(CommandLine)
 | eval run_user=mvindex(User,-1)
-| eval r1=if(match(cmd,"/ru\\s+.*system"),"Runs as SYSTEM",null())
+| eval r1=if(match(cmd,"/ru\\s+\\W?(nt authority\\\\)?system(\\W|$)"),"Runs as SYSTEM",null())
 | eval r2=if(match(cmd,"/sc\\s+(onlogon|onstart|onidle|minute|hourly)"),"Logon, startup or frequent trigger",null())
 | eval r3=if(match(cmd,"powershell|cmd\\.exe|wscript|cscript|mshta|rundll32|regsvr32"),"Script or LOLBin action",null())
 | eval r4=if(match(cmd,"\\\\users\\\\|\\\\temp\\\\|\\\\appdata\\\\|\\\\programdata\\\\|\\\\public\\\\"),"Runs from a user-writable path",null())
