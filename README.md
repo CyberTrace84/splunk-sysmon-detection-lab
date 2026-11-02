@@ -21,6 +21,7 @@ Build a small SOC lab that collects Windows logs, detects suspicious activity, a
 | Brute Force - Multiple Failed Logons | T1110.001 | Security 4625 | 5+ failures in 10 min per user and source | User forgetting their password |
 | Suspicious PowerShell Execution | T1059.001 | Sysmon Event ID 1 | Encoded, hidden, bypass or download flags on powershell.exe | Admin scripts and installers using Bypass |
 | New Local Admin Account | T1136.001 | Security 4720 + 4732 | New account added to Administrators (group SID S-1-5-32-544) | IT onboarding, deployment tools |
+| Suspicious Scheduled Task Creation | T1053.005 | Sysmon Event ID 1 | `schtasks /create` with 2+ risk flags (SYSTEM, logon/startup trigger, script action, user-writable path) | Installers, updaters, admin maintenance tasks |
 
 ### Brute-force detection: analyst notes
 **Query:** [detections/brute-force-4625.spl](detections/brute-force-4625.spl)
