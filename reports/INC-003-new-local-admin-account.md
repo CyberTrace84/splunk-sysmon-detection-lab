@@ -18,7 +18,7 @@
 | Actor | Thoufeeq (local account) |
 | New account | labtest10 (SID ending -1004) |
 | Analyst | Mohamed Thoufeeq |
-| Data source | Windows Security events 4720, 4732, 4733, 4726 in Splunk |
+| Data source | Windows Security events 4720, 4732, 4733, 4726 and Sysmon Event ID 1 in Splunk |
 
 ## 1. Summary
 The detection fired when a new local account, `labtest10`, was added to the
@@ -39,8 +39,9 @@ local Administrators group about one second after it was created.
    sequence or script rather than manual work in the user-management console.
 2. **Why it matters:** an admin account gives an attacker a way back in after
    the original account's password is reset (persistence, T1136.001).
-3. **Use of the account:** I searched for logons (4624, 4648) and process
-   creation (4688) by `labtest10` between 10:38 and 10:48 UTC and found none.
+3. **Use of the account:** I searched for logons (4624, 4648) by `labtest10`
+   between 10:38 and 10:48 UTC and found none. Sysmon recorded 90 process
+   starts on the host in that window, none of them by `labtest10`.
 4. **Lifetime:** the account existed for about 8 minutes and was then removed
    from both groups and deleted by the same actor. In a real case, removal does
    not close the investigation, because attackers also delete accounts to hide
