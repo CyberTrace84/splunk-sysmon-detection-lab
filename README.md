@@ -159,6 +159,7 @@ Result: the alert triggered at High severity. The task never executed, because i
 ![Schtasks alert config](screenshots/19-schtasks-alert-config.png)
 ![Schtasks throttle](screenshots/20-schtasks-alert-throttle.png)
 ![Schtasks alert triggered](screenshots/21-schtasks-alert-triggered.png)
+![Scheduler runs showing the throttle](screenshots/22-schtasks-scheduler-runs.png)
 
 ## Incident tickets
 | ID | Alert | Verdict |
