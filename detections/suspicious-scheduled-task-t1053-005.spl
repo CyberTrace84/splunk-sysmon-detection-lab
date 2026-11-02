@@ -1,0 +1,23 @@
+# Detection: Suspicious scheduled task creation
+# Alert name: Suspicious Scheduled Task Creation (T1053.005)
+# MITRE ATT&CK: T1053.005 (Scheduled Task/Job: Scheduled Task)
+# Log source: Sysmon Operational, EventCode 1 (Process Create), schtasks.exe
+# Schedule: every 5 minutes (cron */5 * * * *), 10-minute lookback
+# Trigger: number of results > 0, for each result
+# Throttle: suppress by host for 30 minutes
+# Severity: High (a SYSTEM-level task can give persistence across reboots)
+# Logic: requires 2 or more of 4 risk flags, so a single common flag
+#   (for example an installer using a logon trigger) does not alert.
+# False positives: software installers, updaters, admin maintenance tasks
+
+index=main source="WinEventLog:Microsoft-Windows-Sysmon/Operational" EventCode=1 earliest=-10m Image="*\\schtasks.exe" CommandLine="*/create*"
+| eval cmd=lower(CommandLine)
+| eval run_user=mvindex(User,-1)
+| eval r1=if(match(cmd,"/ru\\s+.*system"),"Runs as SYSTEM",null())
+| eval r2=if(match(cmd,"/sc\\s+(onlogon|onstart|onidle|minute|hourly)"),"Logon, startup or frequent trigger",null())
+| eval r3=if(match(cmd,"powershell|cmd\\.exe|wscript|cscript|mshta|rundll32|regsvr32"),"Script or LOLBin action",null())
+| eval r4=if(match(cmd,"\\\\users\\\\|\\\\temp\\\\|\\\\appdata\\\\|\\\\programdata\\\\|\\\\public\\\\"),"Runs from a user-writable path",null())
+| eval reason=mvappend(r1,r2,r3,r4)
+| eval flags=mvcount(reason)
+| where flags>=2
+| table _time, host, run_user, ParentImage, flags, reason, CommandLine
